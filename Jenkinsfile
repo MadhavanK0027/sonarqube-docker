@@ -2,18 +2,11 @@ pipeline {
     agent any
 
     tools {
-        jdk 'JDK21'
+        jdk 'java JDK 21'
         maven 'Maven 3.9.16'
     }
 
     stages {
-
-        stage('Checkout') {
-            steps {
-                git branch: 'main',
-                    url: 'YOUR_GITHUB_REPOSITORY_URL'
-            }
-        }
 
         stage('Build & Test') {
             steps {

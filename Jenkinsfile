@@ -1,9 +1,10 @@
 pipeline {
+
     agent any
 
     tools {
         jdk 'Java JDK 21'
-        maven 'Maven 3.9.16'
+        maven 'Maven'
     }
 
     stages {
@@ -17,7 +18,12 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    bat 'mvn sonar:sonar -Dsonar.projectKey=sonarqube-docker'
+                    bat '''
+                    mvn sonar:sonar ^
+                    -Dsonar.projectKey=sonarqube-docker ^
+                    -Dsonar.host.url=http://localhost:9000 ^
+                    -Dsonar.token=%SONAR_TOKEN%
+                    '''
                 }
             }
         }
@@ -26,6 +32,30 @@ pipeline {
             steps {
                 timeout(time: 5, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                bat 'docker build -t maddy0027/sonarqube-docker:latest .'
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    bat '''
+                    docker login -u %DOCKER_USERNAME% -p %DOCKER_PASSWORD%
+                    docker push maddy0027/sonarqube-docker:latest
+                    docker logout
+                    '''
                 }
             }
         }
